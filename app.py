@@ -8,25 +8,25 @@ st.title("🏗️ Optimized Beam Design Calculator")
 st.caption("Standard: HK Code of Practice 2013 | Topic 02a Design Tool")
 
 # --- 側邊欄：輸入模組 (最簡化介面) ---
-st.sidebar.header("📋 1. 分析參數 (Inputs)")
+st.sidebar.header("📋 1.(Inputs)")
 # 直接輸入設計總荷重 w
-w = st.sidebar.slider("設計荷重 Ultimate Load w (kN/m)", 5.0, 100.0, 60.0)
-L = st.sidebar.slider("跨距 Span L (m)", 3.0, 15.0, 5.0)
+w = st.sidebar.slider("Ultimate Load w (kN/m)", 5.0, 100.0, 60.0)
+L = st.sidebar.slider("Span L (m)", 3.0, 15.0, 5.0)
 
 st.sidebar.header("🧱 2. 材料與寬度 (B)")
-fcu = st.sidebar.selectbox("混凝土強度 fcu (N/mm²)", [25, 30, 35, 40, 45], index=2)
-fy = st.sidebar.selectbox("鋼筋強度 fy (N/mm²)", [250, 500], index=1)
-b = st.sidebar.slider("選擇梁寬 Width B (mm)", 200, 800, 320)
+fcu = st.sidebar.selectbox("fcu (N/mm²)", [25, 30, 35, 40, 45], index=2)
+fy = st.sidebar.selectbox("fy (N/mm²)", [250, 500], index=1)
+b = st.sidebar.slider("Width B (mm)", 200, 800, 320)
 
-st.sidebar.header("🧶 3. 鋼筋配置 (Reinforcement)")
-nbars = st.sidebar.slider("鋼筋根數 (No. of bars)", 2, 10, 3)
-dia = st.sidebar.selectbox("鋼筋直徑 (mm)", [12, 16, 20, 25, 32, 40], index=2)
+st.sidebar.header("🧶 3. (Reinforcement)")
+nbars = st.sidebar.slider("(No. of bars)", 2, 10, 3)
+dia = st.sidebar.selectbox(" Diameter (mm)", [12, 16, 20, 25, 32, 40], index=2)
 
 # --- 核心運算模組 (The Engine) ---
 
 # 1. 計算彎矩與剪力 (Analysis)
-mu = (w * L**2) / 8  # 設計彎矩 kNm
-vu = (w * L) / 2     # 設計剪力 kN
+M = (w * L**2) / 8  # Design Moment kNm
+V = (w * L) / 2     # Design Shear kN
 
 # 2. 自動求解紅線上的有效高度 d (K=0.156)
 # 公式: d = sqrt(Mu * 10^6 / (0.156 * fcu * B))
