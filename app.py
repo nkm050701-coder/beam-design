@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 # --- Website Setting ---
 st.set_page_config(page_title="HK Beam Optimizer", layout="wide")
-st.title("🏗️ Beam Design Calculator")
+st.title("Beam Design Calculator")
 st.caption("Standard: HK Code of Practice 2013 | Topic 02a Design Tool")
 
 # --- Input ---
@@ -12,16 +12,16 @@ st.sidebar.header(" 1. Inputs")
 w = st.sidebar.slider("Ultimate Load w (kN/m)", 5.0, 100.0, 60.0)
 L = st.sidebar.slider("Span L (m)", 3.0, 15.0, 5.0)
 
-st.sidebar.header("🧱 2. Material Properties & Beam Width (B)")
+st.sidebar.header("2. Material Properties & Beam Width (B)")
 fcu = st.sidebar.selectbox("fcu (N/mm²)", [25, 30, 35, 40, 45], index=2)
 fy = st.sidebar.selectbox("fy (N/mm²)", [250, 500], index=1)
 b = st.sidebar.slider("Width B (mm)", 200, 800, 320)
 
 # K Slider，Maxiumn 0.156
-st.sidebar.header("🎯 3. Design K-Value")
+st.sidebar.header("3. Design K-Value")
 K_val = st.sidebar.slider("Target K Value", 0.05, 0.225, 0.156, help="Standard limit for singly reinforced is 0.156")
 
-st.sidebar.header("🧶 4. Reinforcement")
+st.sidebar.header(" 4. Reinforcement")
 nbars = st.sidebar.slider("No. of bars", 2, 10, 3)
 dia = st.sidebar.selectbox("Diameter (mm)", [12, 16, 20, 25, 32, 40], index=2)
 
@@ -66,30 +66,30 @@ st.divider()
 col_left, col_right = st.columns([1, 1.3])
 
 with col_left:
-    st.subheader("✅ Auto Checking")
+    st.subheader("Auto Checking")
     
     # Capacity Checking
     if as_prov >= as_req:
-        st.success(f"✅ Capacity Pass! (As_prov={as_prov:.0f} mm²)")
+        st.success(f" Capacity Pass! (As_prov={as_prov:.0f} mm²)")
     else:
-        st.error(f"❌ Area not enough! need {as_req:.0f} mm²")
+        st.error(f" Area not enough! need {as_req:.0f} mm²")
 
     # Shear Checking
     if v_shear <= v_max:
-        st.success(f"✅ Shear Pass! (v={v_shear:.2f} MPa)")
+        st.success(f" Shear Pass! (v={v_shear:.2f} MPa)")
     else:
-        st.error(f"❌ Shear Fail!")
+        st.error(f" Shear Fail!")
 
     # Deflection Checking
     if actual_ld <= allowable_ld:
-        st.success(f"✅ Deflection Pass! L/d={actual_ld:.1f} <= {allowable_ld:.1f}")
+        st.success(f" Deflection Pass! L/d={actual_ld:.1f} <= {allowable_ld:.1f}")
     else:
-        st.error(f"❌ Deflection Fail!")
+        st.error(f" Deflection Fail!")
 
-    st.info(f"👉 Suggested H ≈ {round(h_recommended/10)*10} mm")
+    st.info(f" Suggested H ≈ {round(h_recommended/10)*10} mm")
 
 with col_right:
-    st.subheader(f"📈 Graph (Target K = {K_val})")
+    st.subheader(f" Design Graph (Target K = {K_val})")
     
     widths = np.linspace(200, 800, 100)
     #Red Line
