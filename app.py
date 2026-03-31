@@ -2,13 +2,13 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 
-# --- 頁面配置 ---
+# --- Website Setting ---
 st.set_page_config(page_title="HK Beam Optimizer", layout="wide")
 st.title("Beam Design Calculator")
-st.caption("Standard: HK Code of Practice 2013 | Topic 02a Design Tool")
+st.caption("Design Standard: Code of Practice for Structural Use of Concrete 2013 (2020 Edition) | CON4396 Industrial Based Student Project")
 
-# --- 側邊欄：輸入模組 ---
-st.sidebar.header("1. Inputs")
+# --- Input ---
+st.sidebar.header("1. Inputs of Loading and Geometry of Beams")
 w = st.sidebar.number_input("Ultimate Load w (kN/m)", value=60.0)
 L = st.sidebar.number_input("Span L (m)", value=5.0)
 
@@ -17,12 +17,12 @@ fcu = st.sidebar.selectbox("fcu (N/mm²)", [25, 30, 35, 40, 45], index=2)
 fy = st.sidebar.selectbox("fy (N/mm²)", [250, 500], index=1)
 b = st.sidebar.slider("Width B (mm)", 200, 800, 320)
 
-st.sidebar.header("3. Design K-Value")
+st.sidebar.header("3. Desired K-Value")
 K_val = st.sidebar.slider("Target K Value", 0.05, 0.225, 0.156, help="Standard limit for singly reinforced is 0.156")
 
-st.sidebar.header("4. Reinforcement")
+st.sidebar.header("4. Steel Reinforcement")
 nbars = st.sidebar.slider("No. of bars", 2, 10, 3)
-dia = st.sidebar.selectbox("Diameter (mm)", [12, 16, 20, 25, 32, 40], index=2)
+dia = st.sidebar.selectbox("Bar Diameter (mm)", [12, 16, 20, 25, 32, 40], index=2)
 
 st.sidebar.header("5. Detailing & Cover")
 nominal_cover = st.sidebar.number_input("Nominal Cover (mm)", value=25)
@@ -30,8 +30,8 @@ link_dia = st.sidebar.number_input("Link Diameter (mm)", value=10)
 h_agg = st.sidebar.number_input("Max Aggregate Size (mm)", value=20)
 
 st.sidebar.header("6. Unit Cost Settings")
-unit_cost_rebar = st.sidebar.number_input("Rebar Cost (HKD/tonne)", value=3805.0)
-unit_cost_rc_area = st.sidebar.number_input("RC Formwork Cost (HKD/m²)", value=42.0)
+unit_cost_rebar = st.sidebar.number_input("Steel Reinforcement Cost (HKD/tonne)", value=3805.0)
+unit_cost_rc_area = st.sidebar.number_input("Concrete Formwork Cost (HKD/m²)", value=42.0)
 
 # --- Calculation ---
 
