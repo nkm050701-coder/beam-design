@@ -59,7 +59,6 @@ else:
     clear_spacing = 0
 
 # 5. Shear Checking (Section 6.3.2 - 6.3.4)
-# 修正處：將原本錯誤的 V 改為 V_force
 v_shear = (V_force * 1000) / (b * d_calc)
 v_max = min(0.8 * np.sqrt(fcu), 7.0) 
 
@@ -115,17 +114,15 @@ with col_left:
         else:
             st.error(f"Clear Spacing Fail! ({clear_spacing:.1f}mm {symbol_clear} 70mm)")
     
-    # 3. Shear Checking
-    symbol_v = "≤" if v_shear <= vc else ">"
+    # 3. Shear Checking (Section 6.3.2)
     if v_shear > v_max:
         st.error(f"Shear Crushing! (v={v_shear:.2f} > vmax={v_max:.2f} MPa)")
     elif v_shear <= vc:
-        st.success(f"Shear Pass! (v={v_shear:.2f} {symbol_v} vc={vc:.2f} MPa)")
+        st.success(f"Shear Pass! (v={v_shear:.2f} ≤ vc={vc:.2f} MPa)")
     elif v_shear <= (vc + 0.4):
-        st.success(f"Shear Pass! (v={v_shear:.2f} {symbol_v} vc+0.4={vc+0.4:.2f} MPa)")
+        st.success(f"Shear Pass! (v={v_shear:.2f} ≤ vc+0.4={vc+0.4:.2f} MPa)")
     else:
-        st.warning(f"Shear Reinforcement Required! (v={v_shear:.2f} {symbol_v} vc+0.4={vc+0.4:.2f} MPa)")
-
+        st.warning(f"Shear Reinforcement Required! (v={v_shear:.2f} > vc+0.4={vc+0.4:.2f} MPa)")
     # 4. Deflection Checking
     symbol_ld = "≤" if actual_ld <= allowable_ld else ">"
     if actual_ld <= allowable_ld:
