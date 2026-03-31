@@ -36,7 +36,7 @@ unit_cost_rc_area = st.sidebar.number_input("Concrete Formwork Cost (HKD/m²)", 
 
 # 1. Calculation of Shear & Moment
 M = (w * L**2) / 8  
-V = (w * L) / 2      
+V_force = (w * L) / 2      
 
 # 2. Calculation of d and h
 d_calc = np.sqrt((M * 1e6) / (K_val * fcu * b))
@@ -48,22 +48,18 @@ z_raw = d_calc * (0.5 + np.sqrt(0.25 - K_val / 0.9)) if K_val <= 0.225 else 0
 z = min(z_raw, 0.95 * d_calc) if z_raw > 0 else 0.75 * d_calc
 as_req = (M * 1e6) / (0.87 * fy * z)
 as_prov = nbars * (np.pi * dia**2 / 4)
-as_min = 0.0013 * b * h_final
 
 # 4. Spacing Calculation (Custom Logic)
 n_spaces = nbars - 1
 if n_spaces > 0:
-    # 中心距離 c/c spacing = (總寬 - 2*Cover - 2*Link - dia) / (nbars - 1)
-    # 註：這通常是鋼筋中心點到中心點的水平距離
     cc_spacing = (b - 2*nominal_cover - 2*link_dia - dia) / n_spaces
-    # 淨間距 clear spacing
     clear_spacing = (b - 2*nominal_cover - 2*link_dia - nbars*dia) / n_spaces
 else:
     cc_spacing = 0
     clear_spacing = 0
 
 # 5. Shear Checking (Section 6.3.2 - 6.3.4)
-v_shear = (V * 1000) / (b * d_calc)
+v_shear = (V_force * 1000) / (b * d_calc)
 v_max = min(0.8 * np.sqrt(fcu), 7.0) 
 rho = min(100 * as_prov / (b * d_calc), 3.0) 
 k1 = (400 / d_calc)**0.25 if d_calc <= 400 else 1.0
@@ -94,40 +90,43 @@ with col_left:
     st.subheader("Auto Checking")
     
     # 1. Capacity Checking
+    symbol_as = "≥" if as_prov >= as_req else "<"
     if as_prov >= as_req:
-        st.success(f"Capacity Pass! (As_prov={as_prov:.0f} ≥ As_req={as_req:.0f} mm²)")
+        st.success(f"Capacity Pass! (Asprov={as_prov:.0f} {symbol_as} Asreq={as_req:.0f} mm²)")
     else:
-        st.error(f"Area not enough! (As_prov={as_prov:.0f} < As_req={as_req:.0f} mm²)")
+        st.error(f"Capacity Fail! (Asprov={as_prov:.0f} {symbol_as} Asreq={as_req:.0f} mm²)")
 
     # 2. Spacing Checking (Custom Rule)
     if nbars > 1:
-        # Check Center-to-Center Spacing
+        # c/c Check
+        symbol_cc = "≤" if cc_spacing <= 150 else ">"
         if cc_spacing <= 150:
-            st.success(f"c/c Spacing Pass! ({cc_spacing:.1f}mm ≤ 150mm)")
+            st.success(f"c/c Spacing Pass! ({cc_spacing:.1f}mm {symbol_cc} 150mm)")
         else:
-            st.error(f"c/c Spacing Fail! ({cc_spacing:.1f}mm > 150mm)")
-            
-        # Check Clear Spacing
+            st.error(f"c/c Spacing Fail! ({cc_spacing:.1f}mm {symbol_cc} 150mm)")
+        
+        # Clear Check
+        symbol_clear = "≤" if clear_spacing <= 70 else ">"
         if clear_spacing <= 70:
-            st.success(f"Clear Spacing Pass! ({clear_spacing:.1f}mm ≤ 70mm)")
+            st.success(f"Clear Spacing Pass! ({clear_spacing:.1f}mm {symbol_clear} 70mm)")
         else:
-            st.error(f"Clear Spacing Fail! ({clear_spacing:.1f}mm > 70mm)")
-    else:
-        st.warning("Single bar design: Spacing check not applicable.")
+            st.error(f"Clear Spacing Fail! ({clear_spacing:.1f}mm {symbol_clear} 70mm)")
     
     # 3. Shear Checking
+    symbol_v = "≤" if v_shear <= vc else ">"
     if v_shear > v_max:
-        st.error(f"Shear Failure! v > vmax")
+        st.error(f"Shear Crushing! (v={v_shear:.2f} > vmax={v_max:.2f} MPa)")
     elif v_shear <= vc:
-        st.success(f"Shear Pass (v ≤ vc).")
+        st.success(f"Shear Pass! (v={v_shear:.2f} {symbol_v} vc={vc:.2f} MPa)")
     else:
-        st.warning(f"Shear Reinforcement Required (v > vc).")
+        st.warning(f"Shear Reinforcement Required! (v={v_shear:.2f} {symbol_v} vc={vc:.2f} MPa)")
 
     # 4. Deflection Checking
+    symbol_ld = "≤" if actual_ld <= allowable_ld else ">"
     if actual_ld <= allowable_ld:
-        st.success(f"Deflection Pass!")
+        st.success(f"Deflection Pass! (Actual L/d={actual_ld:.1f} {symbol_ld} Allowable={allowable_ld:.1f})")
     else:
-        st.error(f"Deflection Fail!")
+        st.error(f"Deflection Fail! (Actual L/d={actual_ld:.1f} {symbol_ld} Allowable={allowable_ld:.1f})")
 
     st.info(f"Final Beam Size: {b} x {int(h_final)} mm")
 
