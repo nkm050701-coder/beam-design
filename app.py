@@ -27,7 +27,8 @@ dia = st.sidebar.selectbox("Bar Diameter (mm)", [12, 16, 20, 25, 32, 40], index=
 st.sidebar.header("5. Detailing & Cover")
 nominal_cover = st.sidebar.number_input("Nominal Cover (mm)", value=25)
 link_dia = st.sidebar.number_input("Link Diameter (mm)", value=10)
-h_agg = st.sidebar.number_input("Max Aggregate Size (mm)", value=20)
+# beta_b: Redistribution ratio, standard value is 1.0
+beta_b = st.sidebar.number_input("Redistribution Ratio (beta_b)", value=1.0, help="Section 9.2.1.4: Standard value is 1.0")
 
 st.sidebar.header("6. Unit Cost Settings")
 unit_cost_rebar = st.sidebar.number_input("Steel Reinforcement Cost (HKD/tonne)", value=3805.0)
@@ -51,25 +52,21 @@ as_req = (M * 1e6) / (0.87 * fy * z)
 as_prov = nbars * (np.pi * dia**2 / 4)
 as_min = 0.0013 * b * h_final
 
-# 4. Spacing Calculation (Section 9.2.1)
+# 4. Spacing Calculation (Modified based on Section 9.2.1.4 - Max Spacing Only)
 n_spaces = nbars - 1
 clear_spacing = (b - 2*nominal_cover - 2*link_dia - nbars*dia) / n_spaces if n_spaces > 0 else 0
-min_spacing_req = max(dia, h_agg + 5)
-max_spacing_limit = 300 
+
+# Formula 9.1: clear spacing <= 70000 * beta_b / fy <= 300mm
+max_spacing_calc = (70000 * beta_b) / fy
+max_spacing_limit = min(max_spacing_calc, 300.0)
 
 # 5. Shear Checking (Section 6.3.2 - 6.3.4)
 v_shear = (V * 1000) / (b * d_calc)
-v_max = min(0.8 * np.sqrt(fcu), 7.0) # Section 6.1.2.5 Upper limit
-
-# --- Calculate vc (Section 6.3.3 & Table 6.3) ---
-# 100As / bd
+v_max = min(0.8 * np.sqrt(fcu), 7.0) 
 rho = min(100 * as_prov / (b * d_calc), 3.0) 
-# (400/d)^1/4 term
 k1 = (400 / d_calc)**0.25 if d_calc <= 400 else 1.0
-# (fcu/25)^1/3 term
 k2 = (fcu / 25)**(1/3) if fcu <= 40 else (40 / 25)**(1/3)
-
-vc = (0.79 * (rho**(1/3)) * k1 * k2) / 1.25 # 1.25 is partial safety factor for concrete shear
+vc = (0.79 * (rho**(1/3)) * k1 * k2) / 1.25 
 
 # 6. Deflection Checking
 fs = (2 * fy * as_req) / (3 * as_prov) if as_prov > 0 else 0
@@ -85,7 +82,7 @@ c1.metric("Ultimate Load (w)", f"{w} kN/m")
 c2.metric("Moment (M)", f"{M:.1f} kNm") 
 c3.metric("Required d", f"{d_calc:.1f} mm")
 c4.metric("Shear Stress (v)", f"{v_shear:.2f} MPa")
-c5.metric("Concrete Shear (vc)", f"{vc:.2f} MPa")
+c5.metric("Clear Spacing", f"{clear_spacing:.1f} mm")
 
 st.divider()
 
@@ -94,41 +91,32 @@ col_left, col_right = st.columns([1, 1.3])
 with col_left:
     st.subheader("Auto Checking")
     
-    # 1. Capacity & Min Steel Checking
+    # 1. Capacity Checking
     if as_prov >= as_req:
-        if as_prov >= as_min:
-            st.success(f"Design of moment Pass! (As_prov={as_prov:.0f} ≥ As_req={as_req:.0f} mm²)")
-        else:
-            st.warning(f"Meets Moment but fails Min Steel! (As_prov={as_prov:.0f} < As_min={as_min:.0f} mm²)")
+        st.success(f"Capacity Pass! (As_prov={as_prov:.0f} ≥ As_req={as_req:.0f} mm²)")
     else:
         st.error(f"Area not enough! (As_prov={as_prov:.0f} < As_req={as_req:.0f} mm²)")
 
-    # 2. Spacing Checking (Section 9.2.1)
+    # 2. Max Spacing Checking (Section 9.2.1.4)
     if nbars > 1:
-        if clear_spacing < min_spacing_req:
-            st.error(f"Spacing too TIGHT! ({clear_spacing:.1f}mm < Min {min_spacing_req}mm)")
-        elif clear_spacing > max_spacing_limit:
-            st.warning(f"Spacing too WIDE! ({clear_spacing:.1f}mm > Max {max_spacing_limit}mm)")
+        if clear_spacing <= max_spacing_limit:
+            st.success(f"Max Spacing Pass! ({clear_spacing:.1f}mm ≤ Limit {max_spacing_limit:.1f}mm)")
         else:
-            st.success(f"Spacing Pass! ({clear_spacing:.1f}mm)")
+            st.error(f"Spacing too WIDE! ({clear_spacing:.1f}mm > Max Limit {max_spacing_limit:.1f}mm). Fails Crack Control Section 9.2.1.4.")
     
-    # 3. Shear Checking (Section 6.3.2)
+    # 3. Shear Checking
     if v_shear > v_max:
-        st.error(f"Design of Shear Failure! v ({v_shear:.2f}) > vmax ({v_max:.2f} MPa). Increase beam size.")
+        st.error(f"Shear Failure! v > vmax")
     elif v_shear <= vc:
-        st.success(f"Design of Shear Pass (v ≤ vc). Min links required. (v={v_shear:.2f}, vc={vc:.2f})")
-    elif v_shear <= (vc + 0.4):
-        st.success(f"Design of Shear Pass (v ≤ vc+0.4). Nominal links required. (v={v_shear:.2f}, vc={vc:.2f})")
+        st.success(f"Shear Pass (v ≤ vc).")
     else:
-        st.warning(f"Design of Shear Reinforcement Required! v > vc+0.4. (v={v_shear:.2f}, vc={vc:.2f})")
+        st.warning(f"Shear Reinforcement Required (v > vc).")
 
     # 4. Deflection Checking
     if actual_ld <= allowable_ld:
-        st.success(f"Design of Deflection Pass! (Actual L/d={actual_ld:.1f} ≤ Allowable={allowable_ld:.1f})")
+        st.success(f"Deflection Pass!")
     else:
-        st.error(f"Design of Deflection Fail! (Actual L/d={actual_ld:.1f} > Allowable={allowable_ld:.1f})")
-
-    st.info(f"Final Beam Size: {b} x {int(h_final)} mm")
+        st.error(f"Deflection Fail!")
 
 with col_right:
     st.subheader(f"Graph (Target K = {K_val})")
@@ -138,9 +126,9 @@ with col_right:
     ax.plot(widths, req_depths, 'r-', linewidth=2.5, label=f'Boundary Line (K={K_val})')
     ax.axvline(x=b, color='skyblue', linestyle='--', alpha=0.8, linewidth=1.5)
     ax.axhline(y=d_calc, color='skyblue', linestyle='--', alpha=0.8, linewidth=1.5)
-    ax.scatter(b, d_calc, color='blue', s=250, zorder=5, label=f'Design Point ({b}, {d_calc:.0f})')
-    ax.set_xlabel("Width B (mm)", fontsize=11)
-    ax.set_ylabel("Effective Depth d (mm)", fontsize=11)
+    ax.scatter(b, d_calc, color='blue', s=250, zorder=5, label=f'Design Point')
+    ax.set_xlabel("Width B (mm)")
+    ax.set_ylabel("Effective Depth d (mm)")
     ax.grid(True, linestyle=':', alpha=0.5)
     ax.legend()
     st.pyplot(fig)
@@ -148,16 +136,10 @@ with col_right:
 # --- Cost Calculation ---
 st.divider()
 st.subheader("Cost Estimation")
-
 rebar_tonnage = (as_prov * 1e-6) * L * 7.85
 cost_rebar = rebar_tonnage * unit_cost_rebar
 area_rc = ((2 * h_final + b) / 1000) * L
 cost_rc = area_rc * unit_cost_rc_area
 total_cost = cost_rebar + cost_rc
-
-ec1, ec2, ec3 = st.columns(3)
-ec1.write(f"Rebar Weight: {rebar_tonnage:.3f} t")
-ec2.write(f"Formwork Area: {area_rc:.2f} m²")
-ec3.write(f"Total Cost: **HKD {total_cost:.0f}**")
 
 st.write(f"Cost (hkd\$) = Rebar \${cost_rebar:.0f} + RC \${cost_rc:.0f} = **\${total_cost:.0f}**")
