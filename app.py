@@ -75,20 +75,27 @@ col_left, col_right = st.columns([1, 1.3])
 with col_left:
     st.subheader("Auto Checking")
     
+    # 1. Capacity Checking
+    symbol_as = "≥" if as_prov >= as_req else "<"
     if as_prov >= as_req:
-        st.success(f"Capacity Pass! (As_prov={as_prov:.0f} mm²)")
+        st.success(f"Capacity Pass! (As_prov={as_prov:.0f} {symbol_as} As_req={as_req:.0f} mm²)")
     else:
-        st.error(f"Area not enough! need {as_req:.0f} mm²")
+        st.error(f"Area not enough! (As_prov={as_prov:.0f} {symbol_as} As_req={as_req:.0f} mm²)")
 
+    # 2. Shear Checking
+    # Note: v_max is the design shear stress limit vc/v_max from the code
+    symbol_v = "≤" if v_shear <= v_max else ">"
     if v_shear <= v_max:
-        st.success(f"Shear Pass! (v={v_shear:.2f} MPa)")
+        st.success(f"Shear Pass! (v={v_shear:.2f} {symbol_v} vc={v_max:.2f} MPa)")
     else:
-        st.error(f"Shear Fail!")
+        st.error(f"Shear Fail! (v={v_shear:.2f} {symbol_v} vc={v_max:.2f} MPa)")
 
+    # 3. Deflection Checking
+    symbol_ld = "≤" if actual_ld <= allowable_ld else ">"
     if actual_ld <= allowable_ld:
-        st.success(f"Deflection Pass! L/d={actual_ld:.1f} <= {allowable_ld:.1f}")
+        st.success(f"Deflection Pass! (Actual L/d={actual_ld:.1f} {symbol_ld} Allowable L/d={allowable_ld:.1f})")
     else:
-        st.error(f"Deflection Fail!")
+        st.error(f"Deflection Fail! (Actual L/d={actual_ld:.1f} {symbol_ld} Allowable L/d={allowable_ld:.1f})")
 
     st.info(f"Suggested H ≈ {round(h_recommended/10)*10} mm")
 
