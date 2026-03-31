@@ -119,4 +119,4 @@ cost_rc = area_rc * unit_cost_rc_area
 total_cost = cost_rebar + cost_rc
 
 # Output format: Cost (hkd$) = Rebar $xxx + RC $xxx = $xxx
-st.write(f"Cost (hkd$) = Rebar ${cost_rebar:.0f} + RC ${cost_rc:.0f} = **${total_cost:.0f}**")
+st.write(f"Cost (hkd\$) = Rebar \${cost_rebar:.0f} + RC \${cost_rc:.0f} = **\${total_cost:.0f}**")
