@@ -9,7 +9,7 @@ st.caption("Standard: HK Code of Practice 2013 | Topic 02a Design Tool")
 
 # --- 側邊欄：輸入模組 ---
 st.sidebar.header(" 1. Inputs")
-# Change slider to number_input as requested
+# Change slider to number_input
 w = st.sidebar.number_input("Ultimate Load w (kN/m)", value=60.0)
 L = st.sidebar.number_input("Span L (m)", value=5.0)
 
@@ -24,6 +24,11 @@ K_val = st.sidebar.slider("Target K Value", 0.05, 0.225, 0.156, help="Standard l
 st.sidebar.header(" 4. Reinforcement")
 nbars = st.sidebar.slider("No. of bars", 2, 10, 3)
 dia = st.sidebar.selectbox("Diameter (mm)", [12, 16, 20, 25, 32, 40], index=2)
+
+# --- New: Unit Cost Inputs ---
+st.sidebar.header(" 5. Unit Cost Settings")
+unit_cost_rebar = st.sidebar.number_input("Rebar Cost (HKD/tonne)", value=3805.0)
+unit_cost_rc_area = st.sidebar.number_input("RC Formwork Cost (HKD/m²)", value=42.0)
 
 # --- Calculation ---
 
@@ -105,11 +110,13 @@ with col_right:
 
 # --- Cost Calculation ---
 st.divider()
-# Steel: Area(mm2)*10^-6 * L(m) * 7.85(t/m3) * $3805/t
-cost_rebar = (as_prov / 1e6 * L * 7.85) * 3805
-# Concrete Area: (2h + b) * L in meters * $42/m2
-area_conc = ((2 * h_recommended + b) / 1000) * L
-cost_conc_area = area_conc * 42
+# Rebar Cost Calculation: (As_prov in m2) * L * density (7.85 t/m3) * user unit cost
+cost_rebar = (as_prov / 1e6 * L * 7.85) * unit_cost_rebar
+# RC Area Cost Calculation: (2h + b) * L in meters * user unit cost
+area_rc = ((2 * h_recommended + b) / 1000) * L
+cost_rc = area_rc * unit_cost_rc_area
 
-total_cost = cost_rebar + cost_conc_area
-st.write(f"Cost: **${total_cost:.0f}**")
+total_cost = cost_rebar + cost_rc
+
+# Output format: Cost (hkd$) = Rebar $xxx + RC $xxx = $xxx
+st.write(f"Cost (hkd$) = Rebar ${cost_rebar:.0f} + RC ${cost_rc:.0f} = **${total_cost:.0f}**")
