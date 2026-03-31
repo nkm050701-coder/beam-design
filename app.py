@@ -59,10 +59,14 @@ actual_ld = (L * 1000) / d_calc
 
 # --- UI Dashboard ---
 st.subheader(" Design Summary")
-c1, c2, c3 = st.columns(3)
+# Updated from 3 to 5 columns to include Shear and L/d ratio
+c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("Ultimate Load (w)", f"{w} kN/m")
 c2.metric("Moment (M)", f"{M:.1f} kNm") 
 c3.metric("Required d (On K Line)", f"{d_calc:.1f} mm")
+# Added Shear Stress and Actual L/d ratio
+c4.metric("Shear Stress (v)", f"{v_shear:.2f} MPa")
+c5.metric("Actual L/d", f"{actual_ld:.1f}")
 
 st.divider()
 
