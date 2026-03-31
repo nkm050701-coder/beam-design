@@ -41,7 +41,6 @@ V = (w * L) / 2
 
 # 2. Calculation of d and h
 d_calc = np.sqrt((M * 1e6) / (K_val * fcu * b))
-# Total height h calculation based on practical detailing
 h_recommended = d_calc + nominal_cover + link_dia + (dia / 2)
 h_final = np.ceil(h_recommended / 25) * 25
 
@@ -56,12 +55,21 @@ as_min = 0.0013 * b * h_final
 n_spaces = nbars - 1
 clear_spacing = (b - 2*nominal_cover - 2*link_dia - nbars*dia) / n_spaces if n_spaces > 0 else 0
 min_spacing_req = max(dia, h_agg + 5)
-# Max spacing for crack control (Section 8.3 / Table 9.1 simplified)
 max_spacing_limit = 300 
 
-# 5. Shear Checking
+# 5. Shear Checking (Section 6.3.2 - 6.3.4)
 v_shear = (V * 1000) / (b * d_calc)
-v_max = min(0.8 * np.sqrt(fcu), 7.0)
+v_max = min(0.8 * np.sqrt(fcu), 7.0) # Section 6.1.2.5 Upper limit
+
+# --- Calculate vc (Section 6.3.3 & Table 6.3) ---
+# 100As / bd
+rho = min(100 * as_prov / (b * d_calc), 3.0) 
+# (400/d)^1/4 term
+k1 = (400 / d_calc)**0.25 if d_calc <= 400 else 1.0
+# (fcu/25)^1/3 term
+k2 = (fcu / 25)**(1/3) if fcu <= 40 else (40 / 25)**(1/3)
+
+vc = (0.79 * (rho**(1/3)) * k1 * k2) / 1.25 # 1.25 is partial safety factor for concrete shear
 
 # 6. Deflection Checking
 fs = (2 * fy * as_req) / (3 * as_prov) if as_prov > 0 else 0
@@ -77,7 +85,7 @@ c1.metric("Ultimate Load (w)", f"{w} kN/m")
 c2.metric("Moment (M)", f"{M:.1f} kNm") 
 c3.metric("Required d", f"{d_calc:.1f} mm")
 c4.metric("Shear Stress (v)", f"{v_shear:.2f} MPa")
-c5.metric("Clear Spacing", f"{clear_spacing:.1f} mm")
+c5.metric("Concrete Shear (vc)", f"{vc:.2f} MPa")
 
 st.divider()
 
@@ -104,11 +112,15 @@ with col_left:
         else:
             st.success(f"Spacing Pass! ({clear_spacing:.1f}mm)")
     
-    # 3. Shear Checking
-    if v_shear <= v_max:
-        st.success(f"Shear Pass! (v={v_shear:.2f} ≤ vc_max={v_max:.2f} MPa)")
+    # 3. Shear Checking (Section 6.3.2)
+    if v_shear > v_max:
+        st.error(f"Shear Failure! v ({v_shear:.2f}) > vmax ({v_max:.2f} MPa). Increase beam size.")
+    elif v_shear <= vc:
+        st.success(f"Shear Pass (v ≤ vc). Min links required. (v={v_shear:.2f}, vc={vc:.2f})")
+    elif v_shear <= (vc + 0.4):
+        st.success(f"Shear Pass (v ≤ vc+0.4). Nominal links required. (v={v_shear:.2f}, vc={vc:.2f})")
     else:
-        st.error(f"Shear Fail! (v={v_shear:.2f} > vc_max={v_max:.2f} MPa)")
+        st.warning(f"Shear Reinforcement Required! v > vc+0.4. (v={v_shear:.2f}, vc={vc:.2f})")
 
     # 4. Deflection Checking
     if actual_ld <= allowable_ld:
