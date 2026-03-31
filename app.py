@@ -27,8 +27,6 @@ dia = st.sidebar.selectbox("Bar Diameter (mm)", [12, 16, 20, 25, 32, 40], index=
 st.sidebar.header("5. Detailing & Cover")
 nominal_cover = st.sidebar.number_input("Nominal Cover (mm)", value=25)
 link_dia = st.sidebar.number_input("Link Diameter (mm)", value=10)
-# beta_b: Redistribution ratio, standard value is 1.0
-beta_b = st.sidebar.number_input("Redistribution Ratio (beta_b)", value=1.0, help="Section 9.2.1.4: Standard value is 1.0")
 
 st.sidebar.header("6. Unit Cost Settings")
 unit_cost_rebar = st.sidebar.number_input("Steel Reinforcement Cost (HKD/tonne)", value=3805.0)
@@ -52,13 +50,17 @@ as_req = (M * 1e6) / (0.87 * fy * z)
 as_prov = nbars * (np.pi * dia**2 / 4)
 as_min = 0.0013 * b * h_final
 
-# 4. Spacing Calculation (Modified based on Section 9.2.1.4 - Max Spacing Only)
+# 4. Spacing Calculation (Custom Logic)
 n_spaces = nbars - 1
-clear_spacing = (b - 2*nominal_cover - 2*link_dia - nbars*dia) / n_spaces if n_spaces > 0 else 0
-
-# Formula 9.1: clear spacing <= 70000 * beta_b / fy <= 300mm
-max_spacing_calc = (70000 * beta_b) / fy
-max_spacing_limit = min(max_spacing_calc, 300.0)
+if n_spaces > 0:
+    # 中心距離 c/c spacing = (總寬 - 2*Cover - 2*Link - dia) / (nbars - 1)
+    # 註：這通常是鋼筋中心點到中心點的水平距離
+    cc_spacing = (b - 2*nominal_cover - 2*link_dia - dia) / n_spaces
+    # 淨間距 clear spacing
+    clear_spacing = (b - 2*nominal_cover - 2*link_dia - nbars*dia) / n_spaces
+else:
+    cc_spacing = 0
+    clear_spacing = 0
 
 # 5. Shear Checking (Section 6.3.2 - 6.3.4)
 v_shear = (V * 1000) / (b * d_calc)
@@ -81,7 +83,7 @@ c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("Ultimate Load (w)", f"{w} kN/m")
 c2.metric("Moment (M)", f"{M:.1f} kNm") 
 c3.metric("Required d", f"{d_calc:.1f} mm")
-c4.metric("Shear Stress (v)", f"{v_shear:.2f} MPa")
+c4.metric("Bar c/c Spacing", f"{cc_spacing:.1f} mm")
 c5.metric("Clear Spacing", f"{clear_spacing:.1f} mm")
 
 st.divider()
@@ -97,12 +99,21 @@ with col_left:
     else:
         st.error(f"Area not enough! (As_prov={as_prov:.0f} < As_req={as_req:.0f} mm²)")
 
-    # 2. Max Spacing Checking (Section 9.2.1.4)
+    # 2. Spacing Checking (Custom Rule)
     if nbars > 1:
-        if clear_spacing <= max_spacing_limit:
-            st.success(f"Max Spacing Pass! ({clear_spacing:.1f}mm ≤ Limit {max_spacing_limit:.1f}mm)")
+        # Check Center-to-Center Spacing
+        if cc_spacing <= 150:
+            st.success(f"c/c Spacing Pass! ({cc_spacing:.1f}mm ≤ 150mm)")
         else:
-            st.error(f"Spacing too WIDE! ({clear_spacing:.1f}mm > Max Limit {max_spacing_limit:.1f}mm). Fails Crack Control Section 9.2.1.4.")
+            st.error(f"c/c Spacing Fail! ({cc_spacing:.1f}mm > 150mm)")
+            
+        # Check Clear Spacing
+        if clear_spacing <= 70:
+            st.success(f"Clear Spacing Pass! ({clear_spacing:.1f}mm ≤ 70mm)")
+        else:
+            st.error(f"Clear Spacing Fail! ({clear_spacing:.1f}mm > 70mm)")
+    else:
+        st.warning("Single bar design: Spacing check not applicable.")
     
     # 3. Shear Checking
     if v_shear > v_max:
@@ -117,6 +128,8 @@ with col_left:
         st.success(f"Deflection Pass!")
     else:
         st.error(f"Deflection Fail!")
+
+    st.info(f"Final Beam Size: {b} x {int(h_final)} mm")
 
 with col_right:
     st.subheader(f"Graph (Target K = {K_val})")
