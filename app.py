@@ -59,12 +59,18 @@ else:
     clear_spacing = 0
 
 # 5. Shear Checking (Section 6.3.2 - 6.3.4)
-v_shear = (V_force * 1000) / (b * d_calc)
-v_max = min(0.8 * np.sqrt(fcu), 7.0) 
+v_shear = (V * 1000) / (b * d_calc)
+v_max = min(0.8 * np.sqrt(fcu), 7.0) # Section 6.1.2.5 Upper limit
+
+# --- Calculate vc (Section 6.3.3 & Table 6.3) ---
+# 100As / bd
 rho = min(100 * as_prov / (b * d_calc), 3.0) 
+# (400/d)^1/4 term
 k1 = (400 / d_calc)**0.25 if d_calc <= 400 else 1.0
+# (fcu/25)^1/3 term
 k2 = (fcu / 25)**(1/3) if fcu <= 40 else (40 / 25)**(1/3)
-vc = (0.79 * (rho**(1/3)) * k1 * k2) / 1.25 
+
+vc = (0.79 * (rho**(1/3)) * k1 * k2) / 1.25 # 1.25 is partial safety factor for concrete shear
 
 # 6. Deflection Checking
 fs = (2 * fy * as_req) / (3 * as_prov) if as_prov > 0 else 0
@@ -112,14 +118,15 @@ with col_left:
         else:
             st.error(f"Clear Spacing Fail! ({clear_spacing:.1f}mm {symbol_clear} 70mm)")
     
-    # 3. Shear Checking
-    symbol_v = "≤" if v_shear <= vc else ">"
+    # 3. Shear Checking (Section 6.3.2)
     if v_shear > v_max:
-        st.error(f"Shear Crushing! (v={v_shear:.2f} > vmax={v_max:.2f} MPa)")
+        st.error(f"Shear Failure! v ({v_shear:.2f}) > vmax ({v_max:.2f} MPa). Increase beam size.")
     elif v_shear <= vc:
-        st.success(f"Shear Pass! (v={v_shear:.2f} {symbol_v} vc={vc:.2f} MPa)")
+        st.success(f"Shear Pass (v ≤ vc). Min links required. (v={v_shear:.2f}, vc={vc:.2f})")
+    elif v_shear <= (vc + 0.4):
+        st.success(f"Shear Pass (v ≤ vc+0.4). Nominal links required. (v={v_shear:.2f}, vc={vc:.2f})")
     else:
-        st.warning(f"Shear Reinforcement Required! (v={v_shear:.2f} {symbol_v} vc={vc:.2f} MPa)")
+        st.warning(f"Shear Reinforcement Required! v > vc+0.4. (v={v_shear:.2f}, vc={vc:.2f})")
 
     # 4. Deflection Checking
     symbol_ld = "≤" if actual_ld <= allowable_ld else ">"
