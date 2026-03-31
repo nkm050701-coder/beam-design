@@ -97,7 +97,7 @@ with col_left:
     # 1. Capacity & Min Steel Checking
     if as_prov >= as_req:
         if as_prov >= as_min:
-            st.success(f"Capacity Pass! (As_prov={as_prov:.0f} ≥ As_req={as_req:.0f} mm²)")
+            st.success(f"Design of moment Pass! (As_prov={as_prov:.0f} ≥ As_req={as_req:.0f} mm²)")
         else:
             st.warning(f"Meets Moment but fails Min Steel! (As_prov={as_prov:.0f} < As_min={as_min:.0f} mm²)")
     else:
@@ -114,19 +114,19 @@ with col_left:
     
     # 3. Shear Checking (Section 6.3.2)
     if v_shear > v_max:
-        st.error(f"Shear Failure! v ({v_shear:.2f}) > vmax ({v_max:.2f} MPa). Increase beam size.")
+        st.error(f"Design of Shear Failure! v ({v_shear:.2f}) > vmax ({v_max:.2f} MPa). Increase beam size.")
     elif v_shear <= vc:
-        st.success(f"Shear Pass (v ≤ vc). Min links required. (v={v_shear:.2f}, vc={vc:.2f})")
+        st.success(f"Design of Shear Pass (v ≤ vc). Min links required. (v={v_shear:.2f}, vc={vc:.2f})")
     elif v_shear <= (vc + 0.4):
-        st.success(f"Shear Pass (v ≤ vc+0.4). Nominal links required. (v={v_shear:.2f}, vc={vc:.2f})")
+        st.success(f"Design of Shear Pass (v ≤ vc+0.4). Nominal links required. (v={v_shear:.2f}, vc={vc:.2f})")
     else:
-        st.warning(f"Shear Reinforcement Required! v > vc+0.4. (v={v_shear:.2f}, vc={vc:.2f})")
+        st.warning(f"Design of Shear Reinforcement Required! v > vc+0.4. (v={v_shear:.2f}, vc={vc:.2f})")
 
     # 4. Deflection Checking
     if actual_ld <= allowable_ld:
-        st.success(f"Deflection Pass! (Actual L/d={actual_ld:.1f} ≤ Allowable={allowable_ld:.1f})")
+        st.success(f"Design of Deflection Pass! (Actual L/d={actual_ld:.1f} ≤ Allowable={allowable_ld:.1f})")
     else:
-        st.error(f"Deflection Fail! (Actual L/d={actual_ld:.1f} > Allowable={allowable_ld:.1f})")
+        st.error(f"Design of Deflection Fail! (Actual L/d={actual_ld:.1f} > Allowable={allowable_ld:.1f})")
 
     st.info(f"Final Beam Size: {b} x {int(h_final)} mm")
 
