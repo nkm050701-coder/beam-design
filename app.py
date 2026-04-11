@@ -151,4 +151,4 @@ area_rc = ((2 * h_final + b) / 1000) * L
 cost_rc = area_rc * unit_cost_rc_area
 total_cost = cost_rebar + cost_rc
 
-st.write(f"Cost (HKD) = Rebar ${cost_rebar:.0f} + RC ${cost_rc:.0f} = **${total_cost:.0f}**")
+st.write(f"Cost (HKD) = Steel Reinforcement ${cost_rebar:.0f} + Concrete ${cost_rc:.0f} = **${total_cost:.0f}**")
