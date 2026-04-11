@@ -43,13 +43,14 @@ d_calc = np.sqrt((M * 1e6) / (K_val * fcu * b))
 h_recommended = d_calc + nominal_cover + link_dia + (dia / 2)
 h_final = np.ceil(h_recommended / 25) * 25
 
-# 3. Steel Area Calculation
+# 3. Steel Area Calculation (Clause 6.1.2.4)
 z_raw = d_calc * (0.5 + np.sqrt(0.25 - K_val / 0.9)) if K_val <= 0.225 else 0
 z = min(z_raw, 0.95 * d_calc) if z_raw > 0 else 0.75 * d_calc
 as_req = (M * 1e6) / (0.87 * fy * z)
 as_prov = nbars * (np.pi * dia**2 / 4)
+as_min = 0.0013 * b * h_final
 
-# 4. Spacing Calculation (Custom Logic)
+# 4. Spacing Calculation (Clause 8.2 & 9.2.1)
 n_spaces = nbars - 1
 if n_spaces > 0:
     cc_spacing = (b - 2*nominal_cover - 2*link_dia - dia) / n_spaces
@@ -58,18 +59,17 @@ else:
     cc_spacing = 0
     clear_spacing = 0
 
-# 5. Shear Checking (Section 6.3.2 - 6.3.4)
+# 5. Shear Checking (Clause 6.1.2.5 & Table 6.3)
 v_shear = (V_force * 1000) / (b * d_calc)
 v_max = min(0.8 * np.sqrt(fcu), 7.0) 
 
-rho = min(100 * as_prov / (b * d_calc), 3.0) 
-k1 = (400 / d_calc)**0.25 if d_calc <= 400 else 1.0
-k2 = (fcu / 25)**(1/3) if fcu <= 40 else (40 / 25)**(1/3)
+rho_v = max(min(100 * as_prov / (b * d_calc), 3.0), 0.15) 
+k1 = max((400 / d_calc)**0.25, 1.0)
+k2 = (min(fcu, 40) / 25)**(1/3)
+vc = (0.79 * (rho_v**(1/3)) * k1 * k2) / 1.25 
 
-vc = (0.79 * (rho**(1/3)) * k1 * k2) / 1.25 
-
-# 6. Deflection Checking
-fs = (2 * fy * as_req) / (3 * as_prov) if as_prov > 0 else 0
+# 6. Deflection Checking (Clause 7.3.4.2)
+fs = (2.0 / 3.0) * fy * (as_req / as_prov) if as_prov > 0 else 0
 mbd2 = (M * 1e6) / (b * d_calc**2)
 mf_tens = min(0.55 + (477 - fs) / (120 * (0.9 + mbd2)), 2.0)
 allowable_ld = 20 * mf_tens 
@@ -92,43 +92,38 @@ with col_left:
     st.subheader("Auto Checking")
     
     # 1. Capacity Checking
-    symbol_as = "≥" if as_prov >= as_req else "<"
-    if as_prov >= as_req:
-        st.success(f"Capacity Pass! (Asprov={as_prov:.0f} {symbol_as} Asreq={as_req:.0f} mm²)")
+    if as_prov < as_min:
+        st.error(f"Minimum Steel Fail! (Asprov={as_prov:.0f} < Asmin={as_min:.0f} mm²)")
+    elif as_prov >= as_req:
+        st.success(f"Capacity Pass! (Asprov={as_prov:.0f} >= Asreq={as_req:.0f} mm²)")
     else:
-        st.error(f"Capacity Fail! (Asprov={as_prov:.0f} {symbol_as} Asreq={as_req:.0f} mm²)")
+        st.error(f"Capacity Fail! (Asprov={as_prov:.0f} < Asreq={as_req:.0f} mm²)")
 
     # 2. Spacing Checking
     if nbars > 1:
-        # c/c Check
-        symbol_cc = "≤" if cc_spacing <= 150 else ">"
-        if cc_spacing <= 150:
-            st.success(f"c/c Spacing Pass! ({cc_spacing:.1f}mm {symbol_cc} 150mm)")
+        if clear_spacing >= max(dia, 25):
+            st.success(f"Min Spacing Pass! ({clear_spacing:.1f}mm)")
         else:
-            st.error(f"c/c Spacing Fail! ({cc_spacing:.1f}mm {symbol_cc} 150mm)")
-        
-        # Clear Check
-        symbol_clear = "≤" if clear_spacing <= 70 else ">"
-        if clear_spacing <= 70:
-            st.success(f"Clear Spacing Pass! ({clear_spacing:.1f}mm {symbol_clear} 70mm)")
+            st.error(f"Min Spacing Fail! ({clear_spacing:.1f}mm)")
+
+        if clear_spacing <= 150:
+            st.success(f"Max Spacing Pass! ({clear_spacing:.1f}mm <= 150mm)")
         else:
-            st.error(f"Clear Spacing Fail! ({clear_spacing:.1f}mm {symbol_clear} 70mm)")
+            st.error(f"Max Spacing Fail! ({clear_spacing:.1f}mm > 150mm)")
     
-    # 3. Shear Checking (Section 6.3.2)
+    # 3. Shear Checking
     if v_shear > v_max:
         st.error(f"Shear Crushing! (v={v_shear:.2f} > vmax={v_max:.2f} MPa)")
-    elif v_shear <= vc:
-        st.success(f"Shear Pass! (v={v_shear:.2f} ≤ vc={vc:.2f} MPa)")
     elif v_shear <= (vc + 0.4):
-        st.success(f"Shear Pass! (v={v_shear:.2f} ≤ vc+0.4={vc+0.4:.2f} MPa)")
+        st.success(f"Shear Pass (Nominal Links)! (v={v_shear:.2f} <= vc+0.4={vc+0.4:.2f})")
     else:
-        st.warning(f"Shear Reinforcement Required! (v={v_shear:.2f} > vc+0.4={vc+0.4:.2f} MPa)")
+        st.warning(f"Shear Reinforcement Required! (v={v_shear:.2f} > vc+0.4={vc+0.4:.2f})")
+
     # 4. Deflection Checking
-    symbol_ld = "≤" if actual_ld <= allowable_ld else ">"
     if actual_ld <= allowable_ld:
-        st.success(f"Deflection Pass! (Actual L/d={actual_ld:.1f} {symbol_ld} Allowable={allowable_ld:.1f})")
+        st.success(f"Deflection Pass! (Actual L/d={actual_ld:.1f} <= Allowable={allowable_ld:.1f})")
     else:
-        st.error(f"Deflection Fail! (Actual L/d={actual_ld:.1f} {symbol_ld} Allowable={allowable_ld:.1f})")
+        st.error(f"Deflection Fail! (Actual L/d={actual_ld:.1f} > Allowable={allowable_ld:.1f})")
 
     st.info(f"Final Beam Size: {b} x {int(h_final)} mm")
 
@@ -156,4 +151,4 @@ area_rc = ((2 * h_final + b) / 1000) * L
 cost_rc = area_rc * unit_cost_rc_area
 total_cost = cost_rebar + cost_rc
 
-st.write(f"Cost (hkd\$) = Rebar \${cost_rebar:.0f} + RC \${cost_rc:.0f} = **\${total_cost:.0f}**")
+st.write(f"Cost (HKD) = Rebar ${cost_rebar:.0f} + RC ${cost_rc:.0f} = **${total_cost:.0f}**")
