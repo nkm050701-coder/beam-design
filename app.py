@@ -19,7 +19,15 @@ fy = st.sidebar.selectbox("fy (N/mm²)", [250, 500], index=1)
 b = st.sidebar.slider("Width B (mm)", 200, 800, 320)
 
 st.sidebar.header("3. Desired K-Value")
-K_val = st.sidebar.slider("Target K Value", 0.05, 0.225, 0.156, help="Standard limit for singly reinforced is 0.156")
+K_val = st.sidebar.number_input(
+    "Target K Value", 
+    min_value=0.050, 
+    max_value=0.225, 
+    value=0.156, 
+    step=0.001, 
+    format="%.3f",
+    help="Standard limit for singly reinforced is 0.156"
+)
 
 st.sidebar.header("4. Steel Reinforcement")
 nbars = st.sidebar.slider("No. of bars", 2, 10, 3)
