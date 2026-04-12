@@ -1,148 +1,137 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 # --- Website Setting ---
-st.set_page_config(page_title="HK Beam Optimizer", layout="wide")
-st.title("Beam Design Calculator")
-st.caption("Design Standard: Code of Practice for Structural Use of Concrete 2013 (2020 Edition) | CON4396 Industrial Based Student Project")
+st.set_page_config(page_title="HK Beam Optimizer Pro", layout="wide")
+st.title("Beam Design Calculator (HKCOP 2013)")
 
-# --- Input ---
-st.sidebar.header("1. Inputs of Loading and Geometry of Beams")
+# --- Sidebar Inputs ---
+st.sidebar.header("1. Loading & Geometry")
 w = st.sidebar.number_input("Ultimate Load w (kN/m)", value=60.0)
 L = st.sidebar.number_input("Span L (m)", value=5.0)
 
-st.sidebar.header("2. Material Properties & Beam Width (B)")
+st.sidebar.header("2. Material & Size")
 fcu = st.sidebar.selectbox("fcu (N/mm²)", [25, 30, 35, 40, 45], index=2)
 fy = st.sidebar.selectbox("fy (N/mm²)", [250, 500], index=1)
-b = st.sidebar.slider("Width B (mm)", 200, 800, 320)
+b = st.sidebar.slider("Width B (mm)", 200, 800, 300)
+h = st.sidebar.slider("Overall Height H (mm)", 300, 1200, 600) # 改為手動調整H
 
-st.sidebar.header("3. Desired K-Value")
-K_val = st.sidebar.slider("Target K Value", 0.05, 0.225, 0.156, help="Standard limit for singly reinforced is 0.156")
-
-st.sidebar.header("4. Steel Reinforcement")
-nbars = st.sidebar.slider("No. of bars", 2, 10, 3)
-dia = st.sidebar.selectbox("Bar Diameter (mm)", [12, 16, 20, 25, 32, 40], index=2)
-
-st.sidebar.header("5. Detailing & Cover")
+st.sidebar.header("3. Reinforcement")
+dia = st.sidebar.selectbox("Main Bar Dia (mm)", [16, 20, 25, 32, 40], index=2)
+nbars = st.sidebar.slider("No. of Tension Bars", 2, 10, 4)
 nominal_cover = st.sidebar.number_input("Nominal Cover (mm)", value=25)
 link_dia = st.sidebar.number_input("Link Diameter (mm)", value=10)
 
-st.sidebar.header("6. Unit Cost Settings")
-unit_cost_rebar = st.sidebar.number_input("Steel Reinforcement Cost (HKD/tonne)", value=3805.0)
-unit_cost_rc_area = st.sidebar.number_input("Concrete Formwork Cost (HKD/m²)", value=42.0)
+# --- Calculation Logic ---
 
-# --- Calculation ---
+# 1. Moment & Effective Depth
+M = (w * L**2) / 8
+d = h - nominal_cover - link_dia - (dia / 2)
+d_prime = nominal_cover + link_dia + (dia / 2) # 壓筋中心深度
 
-# 1. Calculation of Shear & Moment
-M = (w * L**2) / 8  
-V_force = (w * L) / 2      
+# 2. K-Value Calculation
+K = (M * 1e6) / (fcu * b * d**2)
+K_limit = 0.156 # HKCOP 2013 limit for singly reinforced
 
-# 2. Calculation of d and h
-d_calc = np.sqrt((M * 1e6) / (K_val * fcu * b))
-h_recommended = d_calc + nominal_cover + link_dia + (dia / 2)
-h_final = np.ceil(h_recommended / 25) * 25
-
-# 3. Steel Area Calculation (Clause 6.1.2.4)
-z_raw = d_calc * (0.5 + np.sqrt(0.25 - K_val / 0.9)) if K_val <= 0.225 else 0
-z = min(z_raw, 0.95 * d_calc) if z_raw > 0 else 0.75 * d_calc
-as_req = (M * 1e6) / (0.87 * fy * z)
-as_prov = nbars * (np.pi * dia**2 / 4)
-as_min = 0.0013 * b * h_final
-
-# 4. Spacing Calculation (Clause 8.2 & 9.2.1)
-n_spaces = nbars - 1
-if n_spaces > 0:
-    cc_spacing = (b - 2*nominal_cover - 2*link_dia - dia) / n_spaces
-    clear_spacing = (b - 2*nominal_cover - 2*link_dia - nbars*dia) / n_spaces
+# 3. Steel Area Logic (Doubly Reinforced)
+as_prime_req = 0
+if K <= K_limit:
+    # Singly Reinforced
+    z = min(d * (0.5 + np.sqrt(0.25 - K / 0.9)), 0.95 * d)
+    as_req = (M * 1e6) / (0.87 * fy * z)
+    design_type = "Singly Reinforced"
 else:
-    cc_spacing = 0
-    clear_spacing = 0
+    # Doubly Reinforced
+    design_type = "Doubly Reinforced"
+    z = 0.775 * d
+    m_cap = K_limit * fcu * b * d**2 # 混凝土能承受的最大彎矩
+    as_prime_req = (M * 1e6 - m_cap) / (0.87 * fy * (d - d_prime))
+    as_req = (m_cap / (0.87 * fy * z)) + as_prime_req
 
-# 5. Shear Checking (Clause 6.1.2.5 & Table 6.3)
-v_shear = (V_force * 1000) / (b * d_calc)
-v_max = min(0.8 * np.sqrt(fcu), 7.0) 
+as_prov = nbars * (np.pi * dia**2 / 4)
+as_min = 0.0013 * b * h
 
-rho_v = max(min(100 * as_prov / (b * d_calc), 3.0), 0.15) 
-k1 = max((400 / d_calc)**0.25, 1.0)
-k2 = (min(fcu, 40) / 25)**(1/3)
-vc = (0.79 * (rho_v**(1/3)) * k1 * k2) / 1.25 
+# --- Drawing Function ---
+def draw_beam_section(b, h, nbars, dia, cover, link_dia, as_prime_req):
+    fig, ax = plt.subplots(figsize=(5, 6))
+    
+    # 1. Concrete Outline
+    rect = patches.Rectangle((0, 0), b, h, linewidth=2, edgecolor='black', facecolor='#F5F5F5', label='Concrete')
+    ax.add_patch(rect)
+    
+    # 2. Link (Stirrup)
+    link = patches.Rectangle((cover, cover), b - 2*cover, h - 2*cover, 
+                             linewidth=2, edgecolor='#FF4B4B', fill=False, label='Link')
+    ax.add_patch(link)
+    
+    # 3. Tension Bars (Bottom)
+    spacing = (b - 2*cover - 2*link_dia - dia) / (nbars - 1) if nbars > 1 else 0
+    for i in range(nbars):
+        x = cover + link_dia + dia/2 + i * spacing
+        y = cover + link_dia + dia/2
+        circle = patches.Circle((x, y), dia/2, color='#1C83E1', zorder=3)
+        ax.add_patch(circle)
+        
+    # 4. Compression Bars (Top) 
+    # 如果是雙筋則畫實心，單筋則畫空心（Nominal bars）
+    top_nbars = 2 if as_prime_req == 0 else max(2, int(np.ceil(as_prime_req / (np.pi * 16**2 / 4))))
+    top_spacing = (b - 2*cover - 2*link_dia - 16) / (top_nbars - 1) if top_nbars > 1 else 0
+    for i in range(top_nbars):
+        x = cover + link_dia + 16/2 + i * top_spacing
+        y = h - cover - link_dia - 16/2
+        color = '#1C83E1' if as_prime_req > 0 else 'white'
+        circle = patches.Circle((x, y), 16/2, edgecolor='#1C83E1', facecolor=color, linewidth=1, zorder=3)
+        ax.add_patch(circle)
 
-# 6. Deflection Checking (Clause 7.3.4.2)
-fs = (2.0 / 3.0) * fy * (as_req / as_prov) if as_prov > 0 else 0
-mbd2 = (M * 1e6) / (b * d_calc**2)
-mf_tens = min(0.55 + (477 - fs) / (120 * (0.9 + mbd2)), 2.0)
-allowable_ld = 20 * mf_tens 
-actual_ld = (L * 1000) / d_calc
+    ax.set_xlim(-50, b + 50)
+    ax.set_ylim(-50, h + 50)
+    ax.set_aspect('equal')
+    ax.axis('off')
+    plt.title(f"Section: {b}x{h} mm", fontsize=12)
+    return fig
 
 # --- UI Dashboard ---
 st.subheader("Design Summary")
-c1, c2, c3, c4, c5 = st.columns(5)
-c1.metric("Ultimate Load (w)", f"{w} kN/m")
-c2.metric("Moment (M)", f"{M:.1f} kNm") 
-c3.metric("Required d", f"{d_calc:.1f} mm")
-c4.metric("Bar c/c Spacing", f"{cc_spacing:.1f} mm")
-c5.metric("Clear Spacing", f"{clear_spacing:.1f} mm")
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("Design Type", design_type)
+c2.metric("Moment M", f"{M:.1f} kNm")
+c3.metric("K Value", f"{K:.3f}")
+c4.metric("Status", "PASS" if as_prov >= as_req else "FAIL", delta=None)
 
 st.divider()
 
-col_left, col_right = st.columns([1, 1.3])
+col_left, col_right = st.columns([1, 1])
 
 with col_left:
-    st.subheader("Auto Checking")
+    st.subheader("Structural Checking")
     
-    # 1. Capacity Checking
-    if as_prov < as_min:
-        st.error(f"Minimum Steel Fail! (Asprov={as_prov:.0f} < Asmin={as_min:.0f} mm²)")
-    elif as_prov >= as_req:
-        st.success(f"Capacity Pass! (Asprov={as_prov:.0f} >= Asreq={as_req:.0f} mm²)")
+    # Tension Steel Check
+    if as_prov >= as_req:
+        st.success(f"Tension Steel: OK (Prov: {as_prov:.0f} > Req: {as_req:.0f} mm²)")
     else:
-        st.error(f"Capacity Fail! (Asprov={as_prov:.0f} < Asreq={as_req:.0f} mm²)")
-
-    # 2. Spacing Checking
-    if nbars > 1:
-        if clear_spacing >= max(dia, 25):
-            st.success(f"Min Spacing Pass! ({clear_spacing:.1f}mm)")
-        else:
-            st.error(f"Min Spacing Fail! ({clear_spacing:.1f}mm)")
-
-        if clear_spacing <= 150:
-            st.success(f"Max Spacing Pass! ({clear_spacing:.1f}mm <= 150mm)")
-        else:
-            st.error(f"Max Spacing Fail! ({clear_spacing:.1f}mm > 150mm)")
-    
-    # 3. Shear Checking
-    if v_shear > v_max:
-        st.error(f"Shear Crushing! (v={v_shear:.2f} > vmax={v_max:.2f} MPa)")
-    elif v_shear <= (vc + 0.4):
-        st.success(f"Shear Pass (Nominal Links)! (v={v_shear:.2f} <= vc+0.4={vc+0.4:.2f})")
+        st.error(f"Tension Steel: FAIL (Prov: {as_prov:.0f} < Req: {as_req:.0f} mm²)")
+        
+    # Compression Steel Check
+    if as_prime_req > 0:
+        st.warning(f"Compression Steel Required: {as_prime_req:.0f} mm²")
     else:
-        st.warning(f"Shear Reinforcement Required! (v={v_shear:.2f} > vc+0.4={vc+0.4:.2f})")
+        st.info("No Compression Steel required (Singly Reinforced)")
 
-    # 4. Deflection Checking
-    if actual_ld <= allowable_ld:
-        st.success(f"Deflection Pass! (Actual L/d={actual_ld:.1f} <= Allowable={allowable_ld:.1f})")
+    # Detail Check (Spacing)
+    clear_spacing = (b - 2*nominal_cover - 2*link_dia - nbars*dia) / (nbars - 1) if nbars > 1 else 0
+    if clear_spacing >= max(dia, 25):
+        st.success(f"Spacing: {clear_spacing:.1f} mm (OK)")
     else:
-        st.error(f"Deflection Fail! (Actual L/d={actual_ld:.1f} > Allowable={allowable_ld:.1f})")
-
-    st.info(f"Final Beam Size: {b} x {int(h_final)} mm")
+        st.error(f"Spacing: {clear_spacing:.1f} mm (Too Tight!)")
 
 with col_right:
-    st.subheader(f"Graph (Target K = {K_val})")
-    widths = np.linspace(200, 800, 100)
-    req_depths = np.sqrt((M * 1e6) / (K_val * fcu * widths))
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.plot(widths, req_depths, 'r-', linewidth=2.5, label=f'Boundary Line (K={K_val})')
-    ax.axvline(x=b, color='skyblue', linestyle='--', alpha=0.8, linewidth=1.5)
-    ax.axhline(y=d_calc, color='skyblue', linestyle='--', alpha=0.8, linewidth=1.5)
-    ax.scatter(b, d_calc, color='blue', s=250, zorder=5, label=f'Design Point')
-    ax.set_xlabel("Width B (mm)")
-    ax.set_ylabel("Effective Depth d (mm)")
-    ax.grid(True, linestyle=':', alpha=0.5)
-    ax.legend()
+    st.subheader("Cross Section Visualization")
+    fig = draw_beam_section(b, h, nbars, dia, nominal_cover, link_dia, as_prime_req)
     st.pyplot(fig)
 
-# --- Cost Calculation ---
+# --- Cost Estimation ---
 st.divider()
 st.subheader("Cost Estimation")
 rebar_tonnage = (as_prov * 1e-6) * L * 7.85
