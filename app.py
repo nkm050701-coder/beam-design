@@ -157,7 +157,7 @@ with col_left:
         st.error(f"Deflection Fail! (Actual L/d={actual_ld:.1f} > Allowable={allowable_ld:.1f})")
 
     st.markdown(f"**Suggested Tension Reinforcement:** `{reinforcement_text}`")
-    st.info(f"Final Beam Size: {b} x {int(h_final)} mm")
+    st.markdown(f"**Final Beam Size:** `{b} x {int(h_final)} mm`")
 
 with col_right:
     st.subheader("Beam Section Visualization")
