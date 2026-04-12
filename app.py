@@ -14,9 +14,9 @@ w = st.sidebar.number_input("Ultimate Load w (kN/m)", value=60.0)
 L = st.sidebar.number_input("Span L (m)", value=5.0)
 
 st.sidebar.header("2. Material Properties & Beam Width (B)")
-fcu = st.sidebar.selectbox("fcu (N/mm²)", [25, 30, 35, 40, 45], index=2)
+fcu = st.sidebar.selectbox("fcu (N/mm²)", [25, 30, 35, 40, 45, 60], index=2)
 fy = st.sidebar.selectbox("fy (N/mm²)", [250, 500], index=1)
-b = st.sidebar.slider("Width B (mm)", 200, 800, 320)
+b = st.sidebar.slider("Width B (mm)", 200, 800, 320, step=25)
 
 st.sidebar.header("3. Desired K-Value")
 K_val = st.sidebar.number_input(
