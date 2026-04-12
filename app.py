@@ -97,15 +97,25 @@ mbd2 = (M * 1e6) / (b * d_calc**2)
 mf_tens = min(0.55 + (477 - fs) / (120 * (0.9 + mbd2)), 2.0)
 allowable_ld = 20 * mf_tens 
 actual_ld = (L * 1000) / d_calc
+# 計算滿足撓度所需的最小有效深度
+d_min_deflection = (L * 1000) / allowable_ld
 
 # --- UI Dashboard ---
 st.subheader("Design Summary")
-c1, c2, c3, c4, c5 = st.columns(5)
-c1.metric("Ultimate Load (w)", f"{w} kN/m")
-c2.metric("Moment (M)", f"{M:.1f} kNm") 
-c3.metric("Required d", f"{d_calc:.1f} mm")
-c4.metric("Bar c/c Spacing", f"{cc_spacing:.1f} mm")
-c5.metric("Clear Spacing", f"{clear_spacing:.1f} mm")
+
+# 第一行指標
+r1_c1, r1_c2, r1_c3, r1_c4 = st.columns(4)
+r1_c1.metric("Ultimate Load (w)", f"{w} kN/m")
+r1_c2.metric("Design Moment (M)", f"{M:.1f} kNm")
+r1_c3.metric("Design Shear (V)", f"{V_force:.1f} kN")
+r1_c4.metric("Shear Stress (v)", f"{v_shear:.2f} MPa")
+
+# 第二行指標
+r2_c1, r2_c2, r2_c3, r2_c4 = st.columns(4)
+r2_c1.metric("Conc. Shear Strength (vc)", f"{vc:.2f} MPa")
+r2_c2.metric("Actual L/d Ratio", f"{actual_ld:.1f}")
+r2_c3.metric("Limiting L/d Ratio", f"{allowable_ld:.1f}")
+r2_c4.metric("Min. d (Deflection)", f"{d_min_deflection:.1f} mm")
 
 st.divider()
 
@@ -130,13 +140,11 @@ with col_left:
 
     # 3. Simplified Spacing Checking
     if nbars > 1:
-        # Bar Spacing (c/c) Check
         if cc_spacing <= 150:
             st.success(f"Bar Spacing = {cc_spacing:.1f} mm <= 150 mm c/c, ok")
         else:
             st.error(f"Bar Spacing = {cc_spacing:.1f} mm > 150 mm c/c, not ok")
         
-        # Clear Spacing Check
         if clear_spacing >= 80:
             st.success(f"Clear Spacing = {clear_spacing:.1f} mm >= 80 mm, ok")
         else:
