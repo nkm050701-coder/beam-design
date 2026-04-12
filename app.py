@@ -71,6 +71,11 @@ else:
 as_prov = nbars * (np.pi * dia**2 / 4)
 as_min = 0.0013 * b * h_final
 
+# --- Added: Steel Ratio and Label Formatting ---
+steel_ratio = (as_prov / (b * h_final)) * 100
+bar_type = "T" if fy >= 460 else "R"  # High Yield steel usually 460 or 500
+reinforcement_text = f"{nbars}{bar_type}{dia} ({steel_ratio:.2f}%)"
+
 # 4. Spacing Calculation (Clause 8.2 & 9.2.1)
 n_spaces = nbars - 1
 if n_spaces > 0:
@@ -110,15 +115,15 @@ st.divider()
 col_left, col_right = st.columns([1, 1.3])
 
 with col_left:
-    st.subheader("Auto Checking")
+    st.subheader("Member Design")
     
     # 1. Capacity Checking
     if as_prov < as_min:
         st.error(f"Minimum Steel Fail! (Asprov={as_prov:.0f} < Asmin={as_min:.0f} mm²)")
     elif as_prov >= as_req:
-        st.success(f"Capacity Pass! (Asprov={as_prov:.0f} >= Asreq={as_req:.0f} mm²)")
+        st.success(f"Design of Moment Pass! (Asprov={as_prov:.0f} >= Asreq={as_req:.0f} mm²)")
     else:
-        st.error(f"Capacity Fail! (Asprov={as_prov:.0f} < Asreq={as_req:.0f} mm²)")
+        st.error(f"Design of Moment Fail! (Asprov={as_prov:.0f} < Asreq={as_req:.0f} mm²)")
 
     # 2. Doubly Reinforced Info
     if as_prime_req > 0:
@@ -140,18 +145,20 @@ with col_left:
     
     # 4. Shear Checking
     if v_shear > v_max:
-        st.error(f"Shear Crushing! (v={v_shear:.2f} > vmax={v_max:.2f} MPa)")
+        st.error(f"Design of Shear Crushing! (v={v_shear:.2f} > vmax={v_max:.2f} MPa)")
     elif v_shear <= (vc + 0.4):
-        st.success(f"Shear Pass (Nominal Links)! (v={v_shear:.2f} <= vc+0.4={vc+0.4:.2f})")
+        st.success(f"Design of Shear Pass (Nominal Links)! (v={v_shear:.2f} <= vc+0.4={vc+0.4:.2f})")
     else:
-        st.warning(f"Shear Reinforcement Required! (v={v_shear:.2f} > vc+0.4={vc+0.4:.2f})")
+        st.warning(f"Design of Shear Reinforcement Required! (v={v_shear:.2f} > vc+0.4={vc+0.4:.2f})")
 
     # 5. Deflection Checking
     if actual_ld <= allowable_ld:
-        st.success(f"Deflection Pass! (Actual L/d={actual_ld:.1f} <= Allowable={allowable_ld:.1f})")
+        st.success(f"Design of Deflection Pass! (Actual L/d={actual_ld:.1f} <= Allowable={allowable_ld:.1f})")
     else:
-        st.error(f"Deflection Fail! (Actual L/d={actual_ld:.1f} > Allowable={allowable_ld:.1f})")
+        st.error(f"Design of Deflection Fail! (Actual L/d={actual_ld:.1f} > Allowable={allowable_ld:.1f})")
 
+    # --- Added Display Info ---
+    st.markdown(f"**Suggested Tension Reinforcement:** `{reinforcement_text}`")
     st.info(f"Final Beam Size: {b} x {int(h_final)} mm")
 
 with col_right:
