@@ -112,7 +112,7 @@ r2_c1, r2_c2, r2_c3, r2_c4 = st.columns(4)
 r2_c1.metric("Concrete Shear Strength (vc)", f"{vc:.2f} MPa")
 r2_c2.metric("Actual L/d Ratio", f"{actual_ld:.1f}")
 r2_c3.metric("Limiting L/d Ratio", f"{allowable_ld:.1f}")
-r2_c4.metric("Minimum Required effective depth to fulfill deflection check", f"{d_min_deflection:.1f} mm")
+r2_c4.metric("Minimum Required Effective Depth to Fulfill Deflection Check", f"{d_min_deflection:.1f} mm")
 
 st.divider()
 
