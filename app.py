@@ -97,40 +97,37 @@ mbd2 = (M * 1e6) / (b * d_calc**2)
 mf_tens = min(0.55 + (477 - fs) / (120 * (0.9 + mbd2)), 2.0)
 allowable_ld = 20 * mf_tens 
 actual_ld = (L * 1000) / d_calc
-# 計算滿足撓度所需的最小有效深度
 d_min_deflection = (L * 1000) / allowable_ld
 
 # --- UI Dashboard ---
 st.subheader("Design Summary")
 
-# 第一行指標
 r1_c1, r1_c2, r1_c3, r1_c4 = st.columns(4)
 r1_c1.metric("Ultimate Load (w)", f"{w} kN/m")
 r1_c2.metric("Design Moment (M)", f"{M:.1f} kNm")
 r1_c3.metric("Design Shear (V)", f"{V_force:.1f} kN")
 r1_c4.metric("Shear Stress (v)", f"{v_shear:.2f} MPa")
 
-# 第二行指標
 r2_c1, r2_c2, r2_c3, r2_c4 = st.columns(4)
-r2_c1.metric("Conc. Shear Strength (vc)", f"{vc:.2f} MPa")
+r2_c1.metric("Concrete Shear Strength (vc)", f"{vc:.2f} MPa")
 r2_c2.metric("Actual L/d Ratio", f"{actual_ld:.1f}")
 r2_c3.metric("Limiting L/d Ratio", f"{allowable_ld:.1f}")
-r2_c4.metric("Min. d (Deflection)", f"{d_min_deflection:.1f} mm")
+r2_c4.metric("Minimum Required effective depth to fulfill deflection check", f"{d_min_deflection:.1f} mm")
 
 st.divider()
 
 col_left, col_right = st.columns([1, 1.3])
 
 with col_left:
-    st.subheader("Auto Checking")
+    st.subheader("Member Design")
     
     # 1. Capacity Checking
     if as_prov < as_min:
         st.error(f"Minimum Steel Fail! (Asprov={as_prov:.0f} < Asmin={as_min:.0f} mm²)")
     elif as_prov >= as_req:
-        st.success(f"Capacity Pass! (Asprov={as_prov:.0f} >= Asreq={as_req:.0f} mm²)")
+        st.success(f"Design of Moment Pass! (Asprov={as_prov:.0f} >= Asreq={as_req:.0f} mm²)")
     else:
-        st.error(f"Capacity Fail! (Asprov={as_prov:.0f} < Asreq={as_req:.0f} mm²)")
+        st.error(f"Design of Moment Fail! (Asprov={as_prov:.0f} < Asreq={as_req:.0f} mm²)")
 
     # 2. Doubly Reinforced Info
     if as_prime_req > 0:
@@ -152,23 +149,23 @@ with col_left:
     
     # 4. Shear Checking
     if v_shear > v_max:
-        st.error(f"Shear Crushing! (v={v_shear:.2f} > vmax={v_max:.2f} MPa)")
+        st.error(f"Design of Shear Crushing! (v={v_shear:.2f} > vmax={v_max:.2f} MPa)")
     elif v_shear <= (vc + 0.4):
-        st.success(f"Shear Pass (Nominal Links)! (v={v_shear:.2f} <= vc+0.4={vc+0.4:.2f})")
+        st.success(f"Design of Shear Pass (Nominal Links)! (v={v_shear:.2f} <= vc+0.4={vc+0.4:.2f})")
     else:
         st.warning(f"Shear Reinforcement Required! (v={v_shear:.2f} > vc+0.4={vc+0.4:.2f})")
 
     # 5. Deflection Checking
     if actual_ld <= allowable_ld:
-        st.success(f"Deflection Pass! (Actual L/d={actual_ld:.1f} <= Allowable={allowable_ld:.1f})")
+        st.success(f"Design of Deflection Pass! (Actual L/d={actual_ld:.1f} <= Allowable={allowable_ld:.1f})")
     else:
-        st.error(f"Deflection Fail! (Actual L/d={actual_ld:.1f} > Allowable={allowable_ld:.1f})")
+        st.error(f"Design of Deflection Fail! (Actual L/d={actual_ld:.1f} > Allowable={allowable_ld:.1f})")
 
     st.markdown(f"**Suggested Tension Reinforcement:** `{reinforcement_text}`")
     st.markdown(f"**Final Beam Size:** `{b} x {int(h_final)} mm`")
 
 with col_right:
-    st.subheader("Beam Section Visualization")
+    st.subheader("Beam Section")
     fig, ax = plt.subplots(figsize=(6, 7))
     rect = patches.Rectangle((0, 0), b, h_final, linewidth=2, edgecolor='black', facecolor='#f9f9f9')
     ax.add_patch(rect)
