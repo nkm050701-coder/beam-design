@@ -76,7 +76,12 @@ as_prov = nbars * (np.pi * dia**2 / 4)
 as_min = 0.0013 * b * h_final
 
 # Steel Ratio Info
-steel_ratio = (as_prov / (b * h_final)) * 100
+if fy <= 250:
+    min_ratio = 0.0024  
+else:
+    min_ratio = 0.0013  
+as_min = min_ratio * b * h_final
+
 bar_type = "T" if fy >= 460 else "R"
 reinforcement_text = f"{nbars}{bar_type}{dia} ({steel_ratio:.2f}%)"
 
