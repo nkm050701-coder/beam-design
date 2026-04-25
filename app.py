@@ -54,14 +54,20 @@ h_final = np.ceil(h_recommended / 25) * 25
 d_prime = nominal_cover + link_dia + (dia / 2) 
 
 # 3. Steel Area Calculation
-K_limit = 0.156
+if fcu <= 45:
+    lam = 0.9
+    K_limit = 0.156
+else:
+    lam = 0.9 - (fcu - 45) / 1000
+    K_limit = 0.120
+
 if K_val <= K_limit:
-    z_raw = d_calc * (0.5 + np.sqrt(0.25 - K_val / 0.9))
+    z_raw = d_calc * (0.5 + np.sqrt(0.25 - K_val / lam))
     z = min(z_raw, 0.95 * d_calc)
     as_req = (M * 1e6) / (0.87 * fy * z)
     as_prime_req = 0
 else:
-    z = 0.775 * d_calc
+    z = (1 - 0.5 * lam * 0.5) * d_calc
     m_cap = K_limit * fcu * b * d_calc**2
     as_prime_req = (M * 1e6 - m_cap) / (0.87 * fy * (d_calc - d_prime))
     as_req = (m_cap / (0.87 * fy * z)) + as_prime_req
