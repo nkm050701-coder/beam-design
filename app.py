@@ -82,8 +82,15 @@ else:
     min_ratio = 0.0013  
 as_min = min_ratio * b * h_final
 
+if current_ratio < min_ratio:
+    ratio_status = "FAILED (Below Minimum)"
+else:
+    ratio_status = "PASSED"
+    
+ratio_percentage = current_ratio * 100
+
 bar_type = "T" if fy >= 460 else "R"
-reinforcement_text = f"{nbars}{bar_type}{dia} ({steel_ratio:.2f}%)"
+reinforcement_text = f"{nbars}{bar_type}{dia} ({ratio_percentage:.2f}%) - {ratio_status}"
 
 # 4. Spacing Calculation
 n_spaces = nbars - 1
