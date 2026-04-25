@@ -55,19 +55,17 @@ d_prime = nominal_cover + link_dia + (dia / 2)
 
 # 3. Steel Area Calculation
 if fcu <= 45:
-    lam = 0.9
     K_limit = 0.156
 else:
-    lam = 0.8
     K_limit = 0.120
 
 if K_val <= K_limit:
-    z_raw = d_calc * (0.5 + np.sqrt(0.25 - K_val / lam))
+    z_raw = d_calc * (0.5 + np.sqrt(0.25 - K_val / 0.9))
     z = min(z_raw, 0.95 * d_calc)
     as_req = (M * 1e6) / (0.87 * fy * z)
     as_prime_req = 0
 else:
-    z = d_calc * (0.5 + np.sqrt(0.25 - K_limit / lam))
+    z = d_calc * (0.5 + np.sqrt(0.25 - K_limit / 0.9))
     m_cap = K_limit * fcu * b * d_calc**2
     as_prime_req = (M * 1e6 - m_cap) / (0.87 * fy * (d_calc - d_prime))
     as_req = (m_cap / (0.87 * fy * z)) + as_prime_req
