@@ -89,9 +89,9 @@ else:
 ratio_percentage = current_ratio * 100
 
 if fy >= 500:
-bar_type = "T"
+    bar_type = "T"
 else:
-bar_type ="R"
+    bar_type ="R"
 
 reinforcement_text = f"{nbars}{bar_type}{dia} ({ratio_percentage:.2f}%) - {ratio_status}"
 
