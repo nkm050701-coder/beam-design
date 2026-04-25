@@ -88,7 +88,7 @@ else:
     
 ratio_percentage = current_ratio * 100
 
-if fy = 500
+if fy = 500:
 bar_type = "T"
 else:
 bar_type ="R"
