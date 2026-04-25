@@ -73,7 +73,6 @@ else:
     as_req = (m_cap / (0.87 * fy * z)) + as_prime_req
 
 as_prov = nbars * (np.pi * dia**2 / 4)
-as_min = 0.0013 * b * h_final
 
 # Steel Ratio Info
 if fy <= 250:
@@ -81,6 +80,8 @@ if fy <= 250:
 else:
     min_ratio = 0.0013  
 as_min = min_ratio * b * h_final
+
+current_ratio = as_prov / (b * h_final)
 
 if current_ratio < min_ratio:
     ratio_status = "FAILED (Below Minimum)"
