@@ -88,7 +88,7 @@ else:
     
 ratio_percentage = current_ratio * 100
 
-bar_type = "T" if fy >= 460 else "R"
+bar_type = "T" if fy = 500 else "R"
 reinforcement_text = f"{nbars}{bar_type}{dia} ({ratio_percentage:.2f}%) - {ratio_status}"
 
 # 4. Spacing Calculation
