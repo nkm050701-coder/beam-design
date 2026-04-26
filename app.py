@@ -181,7 +181,6 @@ with col_left:
         st.success(f"Design of Shear Pass (Minimum Nominal Links)! (v={v_shear:.2f} <= vc+0.4={vc+0.4:.2f})")
     else:
         st.warning(f"Shear Reinforcement Required! (v={v_shear:.2f} > vc+0.4={vc+0.4:.2f})")
-        st.info(f"Asv/sv must be calculated using: Asv >= [bv * sv * (v - vc)] / (0.87 * fyv)")
 
     # 5. Deflection Checking
     if actual_ld <= allowable_ld:
