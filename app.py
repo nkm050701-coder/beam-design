@@ -169,9 +169,9 @@ with col_left:
             st.error(f"Bar Spacing = {cc_spacing:.1f} mm > 150 mm c/c, not ok")
         
         if clear_spacing <= spacing_limit:
-    st.success(f"Clear Spacing = {clear_spacing:.1f} mm <= {spacing_limit:.1f} mm, ok")
-else:
-    st.error(f"Clear Spacing = {clear_spacing:.1f} mm > {spacing_limit:.1f} mm, not ok")
+            st.success(f"Clear Spacing = {clear_spacing:.1f} mm <= {spacing_limit:.1f} mm, ok")
+        else:
+            st.error(f"Clear Spacing = {clear_spacing:.1f} mm > {spacing_limit:.1f} mm, not ok")
     
     # 4. Shear Checking
     if v_shear > v_max:
