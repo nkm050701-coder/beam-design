@@ -172,7 +172,12 @@ with col_left:
             st.success(f"Clear Spacing = {clear_spacing:.1f} mm <= {spacing_limit:.1f} mm, ok")
         else:
             st.error(f"Clear Spacing = {clear_spacing:.1f} mm > {spacing_limit:.1f} mm, not ok")
-    
+            
+       if clear_spacing >= 20;
+           st.success(f"Clear Spacing = {clear_spacing:.1f} mm >= {20:.1f} mm, ok")
+       else:
+           st.error(f"Clear Spacing = {clear_spacing:.1f} mm < {20:.1f} mm, not ok")
+
     # 4. Shear Checking
     if v_shear > v_max:
         st.error(f"Design of Shear Crushing! (v={v_shear:.2f} > vmax={v_max:.2f} MPa)")
