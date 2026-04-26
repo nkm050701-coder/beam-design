@@ -113,6 +113,7 @@ k3 = (min(fcu, 80) / 25)**(1/3)
 vc = (0.79 * (k1**(1/3)) * k2 * k3) / 1.25 
 
 # 6. Deflection Checking
+fs = (2.0 / 3.0) * fy * (as_req / as_prov) if as_prov > 0 else 0 
 mbd2 = (M * 1e6) / (b * d_calc**2)
 mf_tens = min(0.55 + (477 - fs) / (120 * (0.9 + mbd2)), 2.0)
 allowable_ld = 20 * mf_tens 
