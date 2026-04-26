@@ -157,16 +157,21 @@ with col_left:
         st.info("Singly Reinforced Design")
 
     # 3. Simplified Spacing Checking
+
+    fs = (2 * fy * as_req) / (3 * as_prov) 
+
+    spacing_limit = min(47000 / fs, 300)
+    
     if nbars > 1:
         if cc_spacing <= 150:
             st.success(f"Bar Spacing = {cc_spacing:.1f} mm <= 150 mm c/c, ok")
         else:
             st.error(f"Bar Spacing = {cc_spacing:.1f} mm > 150 mm c/c, not ok")
         
-        if clear_spacing >= 80:
-            st.success(f"Clear Spacing = {clear_spacing:.1f} mm >= 80 mm, ok")
-        else:
-            st.error(f"Clear Spacing = {clear_spacing:.1f} mm < 80 mm, not ok")
+        if clear_spacing <= spacing_limit:
+    st.success(f"Clear Spacing = {clear_spacing:.1f} mm <= {spacing_limit:.1f} mm, ok")
+else:
+    st.error(f"Clear Spacing = {clear_spacing:.1f} mm > {spacing_limit:.1f} mm, not ok")
     
     # 4. Shear Checking
     if v_shear > v_max:
