@@ -107,10 +107,10 @@ else:
 # 5. Shear Checking
 v_shear = (V_force * 1000) / (b * d_calc)
 v_max = min(0.8 * np.sqrt(fcu), 7.0) 
-rho_v = max(min(100 * as_prov / (b * d_calc), 3.0), 0.15) 
-k1 = max((400 / d_calc)**0.25, 1.0)
-k2 = (min(fcu, 40) / 25)**(1/3)
-vc = (0.79 * (rho_v**(1/3)) * k1 * k2) / 1.25 
+k1 = max(min(100 * as_prov / (b * d_calc), 3.0), 0.15) 
+k2 = max((400 / d_calc)**0.25, 1.0)
+k3 = (min(fcu, 40) / 25)**(1/3)
+vc = (0.79 * (k1**(1/3)) * k2 * k3) / 1.25 
 
 # 6. Deflection Checking
 fs = (2.0 / 3.0) * fy * (as_req / as_prov) if as_prov > 0 else 0
