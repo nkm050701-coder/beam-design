@@ -21,8 +21,8 @@ b = st.sidebar.slider("Width B (mm)", 200, 800, 320, step=25)
 st.sidebar.header("3. Desired K-Value")
 K_val = st.sidebar.number_input(
     "Target K Value", 
-    min_value=0.050, 
-    max_value=0.225, 
+    min_value=0.001, 
+    max_value=0.3, 
     value=0.156, 
     step=0.001, 
     format="%.3f",
