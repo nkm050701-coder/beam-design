@@ -217,7 +217,7 @@ with col_right:
 
     ax.set_xlim(-50, b + 50)
     ax.set_ylim(-50, h_final + 50)
-    
+    ax.set_aspect('equal')
     ax.axis('off')
     st.pyplot(fig)
 
